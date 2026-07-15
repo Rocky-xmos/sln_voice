@@ -75,11 +75,11 @@
 #endif /* appconfSPI_IO_CORE */
 
 #ifndef appconfI2C_IO_CORE
-#define appconfI2C_IO_CORE                      3 /* Must be kept off core 0 with the RTOS tick ISR */
+#define appconfI2C_IO_CORE                      3 /* Keep I2C off the USB interrupt core; this demo only uses I2C for startup control. */
 #endif /* appconfI2C_IO_CORE */
 
 #ifndef appconfI2C_INTERRUPT_CORE
-#define appconfI2C_INTERRUPT_CORE               0 /* Must be kept off I/O cores. */
+#define appconfI2C_INTERRUPT_CORE               4 /* Reserve a separate core so I2C cannot contend with USB interrupts. */
 #endif /* appconfI2C_INTERRUPT_CORE */
 
 /*****************************************/

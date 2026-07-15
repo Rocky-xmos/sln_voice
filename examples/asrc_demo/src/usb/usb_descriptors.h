@@ -46,4 +46,11 @@ enum {
 #define UAC2_ENTITY_MIC_FEATURE_UNIT    0x22
 #define UAC2_ENTITY_MIC_OUTPUT_TERMINAL 0x23
 
+// UAC1 has no clock source entity; sample rate is described on the AS format/EP.
+#define UAC1_ENTITY_SPK_INPUT_TERMINAL  0x11
+#define UAC1_ENTITY_SPK_FEATURE_UNIT    0x12
+#define UAC1_ENTITY_SPK_OUTPUT_TERMINAL 0x13
+#define UAC1_ENTITY_MIC_INPUT_TERMINAL  0x21
+#define UAC1_ENTITY_MIC_OUTPUT_TERMINAL 0x23
+
 #endif /* USB_DESCRIPTORS_H_ */

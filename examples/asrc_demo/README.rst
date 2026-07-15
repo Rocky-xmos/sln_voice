@@ -1,31 +1,21 @@
 *********************
-ASRC Demo Application
-*********************
+USB to I2S Playback Demo
+************************
 
 .. warning::
 
    This example is based on the RTOS framework and drivers, and it can lead to latency of up to 20 ms in the system.
-   More information can be found in the Overview section of the ASRC example in the Programming Guide.
+   More information can be found in the Overview section of the USB Audio example in the Programming Guide.
 
-   For a proposed implementation with lower latency, please refer to the bare-metal examples below:
+This is the XCORE-VOICE USB audio playback example design.
 
-      - `AN02003: SPDIF/ADAT/I2S Slave Receive to I2S Slave Bridge with ASRC <https://www.xmos.com/file/AN02003>`__
+The example system implements a stereo USB Audio Class 2.0 interface and a stereo I2S master output path.
+Audio received from the USB host is forwarded directly to the I2S tile and then sent to the DAC over I2S.
+There is no ASRC in the playback path.
 
+The I2S output interface is a stereo 32 bit interface running at 48 kHz.
 
-This is the XCORE-VOICE Asynchronous Sampling Rate Converter (ASRC) example design.
-
-The example system implements a stereo I2S slave and a stereo adaptive UAC2.0 interface and exchanges data between the two interfaces.
-Since the two interfaces are operating in different clock domains, there is an ASRC block between them that converts from the input to the output sampling rate.
-There are two ASRC blocks, one in the I2S -> ASRC -> USB path and the other in the USB -> ASRC -> I2S path.
-
-The application also monitors and computes the instantaneous ratio between the ASRC input and output sampling rate. The rate ratio is used by the ASRC task to dynamically adapt filter coefficients using spline interpolation in its filtering stage.
-
-
-The I2S slave interface is a stereo 32 bit interface supporting sampling rates between 44.1 kHz - 192 kHz.
-
-The USB interface is a stereo, 32 bit, 48 kHz, High-Speed, USB Audio Class 2, Adaptive interface.
-
-The ASRC algorithm in the `lib_src <https://github.com/xmos/lib_src/>`_  library is used for the ASRC processing. The ASRC processing is block based and works on a block size of 244 samples per channel in the I2S -> ASRC -> USB path and 96 samples per channel in the USB -> ASRC -> I2S path.
+The USB interface is a stereo, 32 bit, 48 kHz, High-Speed, USB Audio Class 2 interface.
 
 Supported Hardware
 ==================
@@ -33,25 +23,11 @@ Supported Hardware
 This example application is supported on the `XK-VOICE-L71 <https://www.digikey.co.uk/en/products/detail/xmos/XK-VOICE-L71/15761172>`_ board.
 In addition to the XK-VOICE-L71 board, it requires an XTAG4 to program and debug the device.
 
-To demonstrate the audio exchange between the I2S and USB interface, the XK-VOICE-L71 device needs to be connected to an I2S master device.
-To do this, connect the BCLK, MCLK, DOUT, DIN pins of the RASPBERRY PI HOST INTERFACE header (J4) on the XK-VOICE-L71 to the I2S master.
-The table below lists the pins on the XK-VOICE-L71 RPI header and the signals on the I2S master that they need to be connected to.
+To demonstrate the audio path, the XK-VOICE-L71 device uses its onboard codec/DAC and I2S output path.
+USB playback data is converted to I2S by the firmware and sent to the codec through the board's audio routing.
 
-+------------------------+---------------------------------------+
-| XK-VOICE-L71 PI        | Connect to                            |
-| header pin             |                                       |
-+========================+=======================================+
-| 12                     | BLCK output on the I2S master board   |
-+------------------------+---------------------------------------+
-| 35                     | LRCK output on the I2S master board   |
-+------------------------+---------------------------------------+
-| 38                     | I2S Data IN on the I2S master board   |
-+------------------------+---------------------------------------+
-| 40                     | I2S Data OUT on the I2S master board  |
-+------------------------+---------------------------------------+
-
-In addition to the pins listed above, make sure to connect one of the GND pins, (6, 14, 20, 30, 34, 9, 25 or 39) on the XK-VOICE-L71 PI
-header to the GND on the I2S master board.
+For audio output, connect the board's speaker, headphone, or line-out path according to the XK-VOICE-L71 hardware guide.
+The codec is initialized over I2C at startup, so no external I2S master is required for the USB playback demo.
 
 
 Obtaining the app files
@@ -143,10 +119,5 @@ or
 Operation
 =========
 
-When the example runs, the audio received by the device on the I2S slave interface at the I2S interface sampling rate is
-sample rate converted using the ASRC to the USB sampling rate and streamed out from the device over the USB interface. Similarly,
-the audio streamed out by the USB host into the USB interface of the device is sample rate converted to the I2S interface sampling
-rate and streamed out from the device over the I2S slave interface.
-
-This example supports dynamic changes of the I2S interface sampling frequency at runtime. It detects the I2S sampling rate change and reconfigures
-the system for the new rate.
+When the example runs, USB playback data is received from the host, buffered, forwarded over the intertile link, and emitted on the I2S
+output that drives the codec/DAC. The receive path from I2S back to USB is still present for monitoring and loopback-style capture use cases.

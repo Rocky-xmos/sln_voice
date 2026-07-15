@@ -37,7 +37,7 @@
 tusb_desc_device_t const desc_device = {
     .bLength            = sizeof(tusb_desc_device_t),
     .bDescriptorType    = TUSB_DESC_DEVICE,
-    .bcdUSB             = 0x0201,   // For BOS descriptor! https://microchip.my.site.com/s/article/Does-a-USB2-1-Specification-Exist
+    .bcdUSB             = 0x0200,
 
     .bDeviceClass       = TUSB_CLASS_UNSPECIFIED,
     .bDeviceSubClass    = TUSB_CLASS_UNSPECIFIED,
@@ -46,7 +46,11 @@ tusb_desc_device_t const desc_device = {
 
     .idVendor           = XMOS_VID,
     .idProduct          = XCORE_VOICE_PID,
+#if appconfUSB_AUDIO_CLASS == appconfUSB_AUDIO_CLASS_1
+    .bcdDevice          = 0x0104,
+#else
     .bcdDevice          = 0x0001,
+#endif
 
     .iManufacturer      = 0x01,
     .iProduct           = 0x02,
@@ -117,6 +121,189 @@ uint8_t const * tud_descriptor_bos_cb(void)
 //--------------------------------------------------------------------+
 // Configuration Descriptor
 //--------------------------------------------------------------------+
+
+#if appconfUSB_AUDIO_CLASS == appconfUSB_AUDIO_CLASS_1
+#define U24_TO_U8S_LE(_x) TU_U32_BYTE0(_x), TU_U32_BYTE1(_x), TU_U32_BYTE2(_x)
+
+#define TUD_AUDIO10_DESC_STD_AC_LEN 9
+#define TUD_AUDIO10_DESC_STD_AC(_itfnum, _nEPs, _stridx) \
+  TUD_AUDIO10_DESC_STD_AC_LEN, TUSB_DESC_INTERFACE, _itfnum, 0x00, _nEPs, TUSB_CLASS_AUDIO, AUDIO_SUBCLASS_CONTROL, AUDIO_INT_PROTOCOL_CODE_V1, _stridx
+
+#define TUD_AUDIO10_DESC_CS_AC_LEN(_nintfs) (8 + (_nintfs))
+#define TUD_AUDIO10_DESC_CS_AC(_bcdADC, _totallen, ...) \
+  TUD_AUDIO10_DESC_CS_AC_LEN(TU_ARGS_NUM(__VA_ARGS__)), TUSB_DESC_CS_INTERFACE, AUDIO10_CS_AC_INTERFACE_HEADER, U16_TO_U8S_LE(_bcdADC), U16_TO_U8S_LE(_totallen + TUD_AUDIO10_DESC_CS_AC_LEN(TU_ARGS_NUM(__VA_ARGS__))), TU_ARGS_NUM(__VA_ARGS__), __VA_ARGS__
+
+#define TUD_AUDIO10_DESC_INPUT_TERM_LEN 12
+#define TUD_AUDIO10_DESC_INPUT_TERM(_termid, _termtype, _assocTerm, _nchannels, _channelcfg, _idxchannelnames, _stridx) \
+  TUD_AUDIO10_DESC_INPUT_TERM_LEN, TUSB_DESC_CS_INTERFACE, AUDIO10_CS_AC_INTERFACE_INPUT_TERMINAL, _termid, U16_TO_U8S_LE(_termtype), _assocTerm, _nchannels, U16_TO_U8S_LE(_channelcfg), _idxchannelnames, _stridx
+
+#define TUD_AUDIO10_DESC_OUTPUT_TERM_LEN 9
+#define TUD_AUDIO10_DESC_OUTPUT_TERM(_termid, _termtype, _assocTerm, _srcid, _stridx) \
+  TUD_AUDIO10_DESC_OUTPUT_TERM_LEN, TUSB_DESC_CS_INTERFACE, AUDIO10_CS_AC_INTERFACE_OUTPUT_TERMINAL, _termid, U16_TO_U8S_LE(_termtype), _assocTerm, _srcid, _stridx
+
+#define TUD_AUDIO10_DESC_FEATURE_UNIT_LEN(_nchannels) (7 + ((_nchannels) + 1) * 2)
+
+#if CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX == 2
+#define TUD_FFVA_UAC1_SPK_FEATURE_UNIT() \
+  TUD_AUDIO10_DESC_FEATURE_UNIT_LEN(2), TUSB_DESC_CS_INTERFACE, AUDIO10_CS_AC_INTERFACE_FEATURE_UNIT, \
+  UAC1_ENTITY_SPK_FEATURE_UNIT, UAC1_ENTITY_SPK_INPUT_TERMINAL, 2, \
+  U16_TO_U8S_LE(AUDIO10_FU_CONTROL_BM_MUTE), \
+  U16_TO_U8S_LE(AUDIO10_FU_CONTROL_BM_MUTE), \
+  U16_TO_U8S_LE(AUDIO10_FU_CONTROL_BM_MUTE), 0x00
+#elif CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX == 4
+#define TUD_FFVA_UAC1_SPK_FEATURE_UNIT() \
+  TUD_AUDIO10_DESC_FEATURE_UNIT_LEN(4), TUSB_DESC_CS_INTERFACE, AUDIO10_CS_AC_INTERFACE_FEATURE_UNIT, \
+  UAC1_ENTITY_SPK_FEATURE_UNIT, UAC1_ENTITY_SPK_INPUT_TERMINAL, 2, \
+  U16_TO_U8S_LE(AUDIO10_FU_CONTROL_BM_MUTE), \
+  U16_TO_U8S_LE(AUDIO10_FU_CONTROL_BM_MUTE), \
+  U16_TO_U8S_LE(AUDIO10_FU_CONTROL_BM_MUTE), \
+  U16_TO_U8S_LE(AUDIO10_FU_CONTROL_BM_MUTE), \
+  U16_TO_U8S_LE(AUDIO10_FU_CONTROL_BM_MUTE), 0x00
+#else
+#error "Unsupported UAC1 speaker channel count"
+#endif
+
+#define TUD_AUDIO10_DESC_STD_AS_LEN 9
+#define TUD_AUDIO10_DESC_STD_AS_INT(_itfnum, _altset, _nEPs, _stridx) \
+  TUD_AUDIO10_DESC_STD_AS_LEN, TUSB_DESC_INTERFACE, _itfnum, _altset, _nEPs, TUSB_CLASS_AUDIO, AUDIO_SUBCLASS_STREAMING, AUDIO_INT_PROTOCOL_CODE_V1, _stridx
+
+#define TUD_AUDIO10_DESC_CS_AS_INT_LEN 7
+#define TUD_AUDIO10_DESC_CS_AS_INT(_termid, _delay, _formattype) \
+  TUD_AUDIO10_DESC_CS_AS_INT_LEN, TUSB_DESC_CS_INTERFACE, AUDIO10_CS_AS_INTERFACE_AS_GENERAL, _termid, _delay, U16_TO_U8S_LE(_formattype)
+
+#define TUD_AUDIO10_DESC_TYPE_I_FORMAT_LEN(_nfreqs) (8 + (_nfreqs) * 3)
+#define TUD_AUDIO10_DESC_TYPE_I_FORMAT(_nrchannels, _subframesize, _bitresolution, _freq) \
+  TUD_AUDIO10_DESC_TYPE_I_FORMAT_LEN(1), TUSB_DESC_CS_INTERFACE, AUDIO10_CS_AS_INTERFACE_FORMAT_TYPE, AUDIO10_FORMAT_TYPE_I, _nrchannels, _subframesize, _bitresolution, 1, U24_TO_U8S_LE(_freq)
+
+#define TUD_AUDIO10_DESC_STD_AS_ISO_EP_LEN 9
+#define TUD_AUDIO10_DESC_STD_AS_ISO_EP(_ep, _attr, _maxEPsize, _interval, _sync_ep) \
+  TUD_AUDIO10_DESC_STD_AS_ISO_EP_LEN, TUSB_DESC_ENDPOINT, _ep, _attr, U16_TO_U8S_LE(_maxEPsize), _interval, 0x00, _sync_ep
+
+#define TUD_AUDIO10_DESC_CS_AS_ISO_EP_LEN 7
+#define TUD_AUDIO10_DESC_CS_AS_ISO_EP(_attr, _lockdelayunits, _lockdelay) \
+  TUD_AUDIO10_DESC_CS_AS_ISO_EP_LEN, TUSB_DESC_CS_ENDPOINT, AUDIO10_CS_EP_SUBTYPE_GENERAL, _attr, _lockdelayunits, U16_TO_U8S_LE(_lockdelay)
+
+#if CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX == 2
+#define ASRC_UAC1_STEREO_CHANNEL_CONFIG \
+    (AUDIO10_CHANNEL_CONFIG_LEFT_FRONT | AUDIO10_CHANNEL_CONFIG_RIGHT_FRONT)
+#else
+#define ASRC_UAC1_STEREO_CHANNEL_CONFIG AUDIO10_CHANNEL_CONFIG_NON_PREDEFINED
+#endif
+
+const size_t uac1_ac_sub_descriptors_length =
+#if AUDIO_OUTPUT_ENABLED
+        TUD_AUDIO10_DESC_INPUT_TERM_LEN
+        + TUD_AUDIO10_DESC_FEATURE_UNIT_LEN(CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX)
+        + TUD_AUDIO10_DESC_OUTPUT_TERM_LEN
+#else
+        0
+#endif
+#if AUDIO_INPUT_ENABLED
+        + TUD_AUDIO10_DESC_INPUT_TERM_LEN
+        + TUD_AUDIO10_DESC_OUTPUT_TERM_LEN
+#endif
+        ;
+
+const size_t uac1_interface_descriptors_length =
+        TUD_AUDIO10_DESC_CS_AC_LEN(AUDIO_OUTPUT_ENABLED + AUDIO_INPUT_ENABLED)
+        + uac1_ac_sub_descriptors_length;
+
+const size_t uac1_total_descriptors_length =
+        TUD_AUDIO10_DESC_STD_AC_LEN
+        + uac1_interface_descriptors_length
+#if AUDIO_OUTPUT_ENABLED
+        + TUD_AUDIO10_DESC_STD_AS_LEN
+        + TUD_AUDIO10_DESC_STD_AS_LEN
+        + TUD_AUDIO10_DESC_CS_AS_INT_LEN
+        + TUD_AUDIO10_DESC_TYPE_I_FORMAT_LEN(1)
+        + TUD_AUDIO10_DESC_STD_AS_ISO_EP_LEN
+        + TUD_AUDIO10_DESC_CS_AS_ISO_EP_LEN
+#endif
+#if AUDIO_INPUT_ENABLED
+        + TUD_AUDIO10_DESC_STD_AS_LEN
+        + TUD_AUDIO10_DESC_STD_AS_LEN
+        + TUD_AUDIO10_DESC_CS_AS_INT_LEN
+        + TUD_AUDIO10_DESC_TYPE_I_FORMAT_LEN(1)
+        + TUD_AUDIO10_DESC_STD_AS_ISO_EP_LEN
+        + TUD_AUDIO10_DESC_CS_AS_ISO_EP_LEN
+#endif
+        ;
+
+const uint16_t tud_audio_desc_lengths[CFG_TUD_AUDIO] = {
+        uac1_total_descriptors_length
+};
+
+#define CONFIG_TOTAL_LEN        (TUD_CONFIG_DESC_LEN + (CFG_TUD_AUDIO * uac1_total_descriptors_length) + TUD_DFU_DESC_LEN(DFU_ALT_COUNT))
+#define EPNUM_AUDIO   0x01
+
+#define AUDIO_INTERFACE_STRING_INDEX 4
+#define DFU_INTERFACE_STRING_INDEX   5
+
+uint8_t const desc_configuration[] = {
+    // Config number, interface count, string index, total length, attribute, power in mA
+    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 400),
+
+    /* Standard AC Interface Descriptor(4.3.1) */
+    TUD_AUDIO10_DESC_STD_AC(/*_itfnum*/ ITF_NUM_AUDIO_CONTROL, /*_nEPs*/ 0x00, /*_stridx*/ AUDIO_INTERFACE_STRING_INDEX),
+    /* Class-Specific AC Interface Header Descriptor(4.3.2) */
+#if AUDIO_INPUT_ENABLED
+    TUD_AUDIO10_DESC_CS_AC(/*_bcdADC*/ 0x0100, /*_totallen*/ uac1_ac_sub_descriptors_length, ITF_NUM_AUDIO_STREAMING_SPK, ITF_NUM_AUDIO_STREAMING_MIC),
+#else
+    TUD_AUDIO10_DESC_CS_AC(/*_bcdADC*/ 0x0100, /*_totallen*/ uac1_ac_sub_descriptors_length, ITF_NUM_AUDIO_STREAMING_SPK),
+#endif
+
+#if AUDIO_OUTPUT_ENABLED
+    /* Speaker Input Terminal Descriptor(4.3.2.1) */
+    TUD_AUDIO10_DESC_INPUT_TERM(/*_termid*/ UAC1_ENTITY_SPK_INPUT_TERMINAL, /*_termtype*/ AUDIO_TERM_TYPE_USB_STREAMING, /*_assocTerm*/ 0x00, /*_nchannels*/ CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX, /*_channelcfg*/ ASRC_UAC1_STEREO_CHANNEL_CONFIG, /*_idxchannelnames*/ 0x00, /*_stridx*/ 0x00),
+    /* Speaker Feature Unit Descriptor(4.3.2.5) */
+    TUD_FFVA_UAC1_SPK_FEATURE_UNIT(),
+    /* Speaker Output Terminal Descriptor(4.3.2.2) */
+    TUD_AUDIO10_DESC_OUTPUT_TERM(/*_termid*/ UAC1_ENTITY_SPK_OUTPUT_TERMINAL, /*_termtype*/ AUDIO_TERM_TYPE_OUT_HEADPHONES, /*_assocTerm*/ 0x00, /*_srcid*/ UAC1_ENTITY_SPK_FEATURE_UNIT, /*_stridx*/ 0x00),
+#endif
+
+#if AUDIO_INPUT_ENABLED
+    /* Microphone Input Terminal Descriptor(4.3.2.1) */
+    TUD_AUDIO10_DESC_INPUT_TERM(/*_termid*/ UAC1_ENTITY_MIC_INPUT_TERMINAL, /*_termtype*/ AUDIO_TERM_TYPE_IN_GENERIC_MIC, /*_assocTerm*/ 0x00, /*_nchannels*/ CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX, /*_channelcfg*/ ASRC_UAC1_STEREO_CHANNEL_CONFIG, /*_idxchannelnames*/ 0x00, /*_stridx*/ 0x00),
+    /* Microphone Output Terminal Descriptor(4.3.2.2) */
+    TUD_AUDIO10_DESC_OUTPUT_TERM(/*_termid*/ UAC1_ENTITY_MIC_OUTPUT_TERMINAL, /*_termtype*/ AUDIO_TERM_TYPE_USB_STREAMING, /*_assocTerm*/ 0x00, /*_srcid*/ UAC1_ENTITY_MIC_INPUT_TERMINAL, /*_stridx*/ 0x00),
+#endif
+
+#if AUDIO_OUTPUT_ENABLED
+    /* Speaker Interface, Alternate 0 - zero bandwidth */
+    TUD_AUDIO10_DESC_STD_AS_INT(/*_itfnum*/ ITF_NUM_AUDIO_STREAMING_SPK, /*_altset*/ 0x00, /*_nEPs*/ 0x00, /*_stridx*/ 0x00),
+    /* Speaker Interface, Alternate 1 - data streaming */
+    TUD_AUDIO10_DESC_STD_AS_INT(/*_itfnum*/ ITF_NUM_AUDIO_STREAMING_SPK, /*_altset*/ 0x01, /*_nEPs*/ 0x01, /*_stridx*/ 0x00),
+    TUD_AUDIO10_DESC_CS_AS_INT(/*_termid*/ UAC1_ENTITY_SPK_INPUT_TERMINAL, /*_delay*/ 0x01, /*_formattype*/ AUDIO10_DATA_FORMAT_TYPE_I_PCM),
+    TUD_AUDIO10_DESC_TYPE_I_FORMAT(CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX, CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_RX, CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_RX * 8, appconfUSB_AUDIO_SAMPLE_RATE),
+    TUD_AUDIO10_DESC_STD_AS_ISO_EP(/*_ep*/ EPNUM_AUDIO, /*_attr*/ (TUSB_XFER_ISOCHRONOUS | TUSB_ISO_EP_ATT_ADAPTIVE), /*_maxEPsize*/ CFG_TUD_AUDIO_FUNC_1_EP_OUT_SZ, /*_interval*/ (CFG_TUSB_RHPORT0_MODE & OPT_MODE_HIGH_SPEED) ? 0x04 : 0x01, /*_sync_ep*/ 0x00),
+    TUD_AUDIO10_DESC_CS_AS_ISO_EP(/*_attr*/ AUDIO10_CS_AS_ISO_DATA_EP_ATT_SAMPLING_FRQ, /*_lockdelayunits*/ AUDIO10_CS_AS_ISO_DATA_EP_LOCK_DELAY_UNIT_MILLISEC, /*_lockdelay*/ 0x0001),
+#endif
+
+#if AUDIO_INPUT_ENABLED
+    /* Microphone Interface, Alternate 0 - zero bandwidth */
+    TUD_AUDIO10_DESC_STD_AS_INT(/*_itfnum*/ ITF_NUM_AUDIO_STREAMING_MIC, /*_altset*/ 0x00, /*_nEPs*/ 0x00, /*_stridx*/ 0x00),
+    /* Microphone Interface, Alternate 1 - data streaming */
+    TUD_AUDIO10_DESC_STD_AS_INT(/*_itfnum*/ ITF_NUM_AUDIO_STREAMING_MIC, /*_altset*/ 0x01, /*_nEPs*/ 0x01, /*_stridx*/ 0x00),
+    TUD_AUDIO10_DESC_CS_AS_INT(/*_termid*/ UAC1_ENTITY_MIC_OUTPUT_TERMINAL, /*_delay*/ 0x01, /*_formattype*/ AUDIO10_DATA_FORMAT_TYPE_I_PCM),
+    TUD_AUDIO10_DESC_TYPE_I_FORMAT(CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX, CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_TX, CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_TX * 8, appconfUSB_AUDIO_SAMPLE_RATE),
+    TUD_AUDIO10_DESC_STD_AS_ISO_EP(/*_ep*/ 0x80 | EPNUM_AUDIO, /*_attr*/ (TUSB_XFER_ISOCHRONOUS | TUSB_ISO_EP_ATT_ASYNCHRONOUS), /*_maxEPsize*/ CFG_TUD_AUDIO_FUNC_1_EP_IN_SZ, /*_interval*/ (CFG_TUSB_RHPORT0_MODE & OPT_MODE_HIGH_SPEED) ? 0x04 : 0x01, /*_sync_ep*/ 0x00),
+    TUD_AUDIO10_DESC_CS_AS_ISO_EP(/*_attr*/ AUDIO10_CS_AS_ISO_DATA_EP_ATT_SAMPLING_FRQ, /*_lockdelayunits*/ AUDIO10_CS_AS_ISO_DATA_EP_LOCK_DELAY_UNIT_MILLISEC, /*_lockdelay*/ 0x0001),
+#endif
+
+    // Interface number, Alternate count, starting string index, attributes, detach timeout, transfer size
+    TUD_DFU_DESCRIPTOR(ITF_NUM_DFU_MODE, DFU_ALT_COUNT, DFU_INTERFACE_STRING_INDEX, DFU_FUNC_ATTRS, 1000, CFG_TUD_DFU_XFER_BUFSIZE),
+};
+
+// Invoked when received GET CONFIGURATION DESCRIPTOR
+// Application return pointer to descriptor
+// Descriptor contents must exist long enough for transfer to complete
+uint8_t const* tud_descriptor_configuration_cb(uint8_t index)
+{
+    (void) index; // for multiple configurations
+    return desc_configuration;
+}
+
+#else
 
 const size_t uac2_interface_descriptors_length =
         TUD_AUDIO_DESC_CLK_SRC_LEN
@@ -249,6 +436,8 @@ uint8_t const* tud_descriptor_configuration_cb(uint8_t index)
     (void) index; // for multiple configurations
     return desc_configuration;
 }
+
+#endif
 
 //--------------------------------------------------------------------+
 // String Descriptors

@@ -4,20 +4,27 @@ set(TARGET_NAME sln_voice_app_asrc_demo_board_support_xk_voice_l71)
 add_library(${TARGET_NAME} INTERFACE)
 target_sources(${TARGET_NAME}
     INTERFACE
+        ${CMAKE_CURRENT_LIST_DIR}/../../../ffd/bsp_config/XK_VOICE_L71/platform/app_pll_ctrl.c
+        ${CMAKE_CURRENT_LIST_DIR}/../../../ffd/bsp_config/XK_VOICE_L71/platform/dac_port.c
         ${CMAKE_CURRENT_LIST_DIR}/platform/oe_enable.c
         ${CMAKE_CURRENT_LIST_DIR}/platform/driver_instances.c
         ${CMAKE_CURRENT_LIST_DIR}/platform/platform_init.c
         ${CMAKE_CURRENT_LIST_DIR}/platform/platform_start.c
+        ${CMAKE_CURRENT_LIST_DIR}/../../../ffd/bsp_config/dac/dac3101/dac3101.c
 )
 target_include_directories(${TARGET_NAME}
     INTERFACE
         ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/../../../ffd/bsp_config/XK_VOICE_L71
+        ${CMAKE_CURRENT_LIST_DIR}/../../../ffd/bsp_config/XK_VOICE_L71/platform
+        ${CMAKE_CURRENT_LIST_DIR}/../../../ffd/bsp_config/dac/dac3101
 )
 target_link_libraries(${TARGET_NAME}
     INTERFACE
         core::general
         rtos::freertos
         rtos::drivers::general
+        rtos::drivers::audio
         rtos::drivers::usb
         rtos::drivers::dfu_image
 )
@@ -36,6 +43,7 @@ target_compile_definitions(${TARGET_NAME}
         PLATFORM_SUPPORTS_TILE_1=1
         PLATFORM_SUPPORTS_TILE_2=0
         PLATFORM_SUPPORTS_TILE_3=0
+        I2C_MASTER_DAC_ENABLED=1
         USB_TILE_NO=0
         USB_TILE=tile[USB_TILE_NO]
         MIC_ARRAY_CONFIG_PDM_FREQ=3072000
@@ -46,6 +54,7 @@ target_compile_definitions(${TARGET_NAME}
         MIC_ARRAY_CONFIG_PORT_MCLK=PORT_MCLK_IN_OUT
         MIC_ARRAY_CONFIG_PORT_PDM_CLK=PORT_PDM_CLK
         MIC_ARRAY_CONFIG_PORT_PDM_DATA=PORT_PDM_DATA
+        MIC_ARRAY_CONFIG_MCLK_FREQ=24576000
         MIC_ARRAY_SAMPLING_FREQ=48000
         appconfAUDIO_PIPELINE_CHANNELS=2
 )

@@ -35,7 +35,11 @@
 // COMMON CONFIGURATION
 //--------------------------------------------------------------------
 
+#if appconfUSB_AUDIO_CLASS == appconfUSB_AUDIO_CLASS_1
+#define CFG_TUSB_RHPORT0_MODE      (OPT_MODE_DEVICE | OPT_MODE_FULL_SPEED)
+#else
 #define CFG_TUSB_RHPORT0_MODE      (OPT_MODE_DEVICE | OPT_MODE_HIGH_SPEED)
+#endif
 #define CFG_TUSB_OS                OPT_OS_CUSTOM
 
 #ifndef CFG_TUSB_DEBUG
@@ -85,10 +89,16 @@ extern const uint16_t tud_audio_desc_lengths[CFG_TUD_AUDIO];
 #define CFG_TUD_AUDIO_FUNC_1_DESC_LEN                       tud_audio_desc_lengths[0]
 #define CFG_TUD_AUDIO_FUNC_1_N_AS_INT                       1
 #define CFG_TUD_AUDIO_FUNC_1_CTRL_BUF_SZ                    64
+#define CFG_TUD_AUDIO_CTRL_BUF_SZ                           CFG_TUD_AUDIO_FUNC_1_CTRL_BUF_SZ
 
 /* TODO make these configurable in app_conf? */
+#if appconfUSB_AUDIO_CLASS == appconfUSB_AUDIO_CLASS_1
+#define CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_TX          2
+#define CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_RX          2
+#else
 #define CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_TX          4
 #define CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_RX          4
+#endif
 
 #if appconfUSB_AUDIO_MODE == appconfUSB_AUDIO_RELEASE
 #define CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX                  2

@@ -3,19 +3,23 @@
 
 /* System headers */
 #include <platform.h>
+#include <rtos_printf.h>
 
 /* App headers */
 #include "platform_conf.h"
+#include "platform/app_pll_ctrl.h"
 #include "platform/driver_instances.h"
 #include "platform/platform_init.h"
-#include "adaptive_rate_adjust.h"
 #include "usb_support.h"
 
 static void mclk_init(chanend_t other_tile_c)
 {
-#if appconfUSB_ENABLED && ON_TILE(USB_TILE_NO)
-    adaptive_rate_adjust_init();
+#if ON_TILE(I2S_TILE_NO)
+    rtos_printf("[startup tile %d] app_pll_init for MCLK\n", THIS_XCORE_TILE);
+    app_pll_init();
+    rtos_printf("[startup tile %d] app_pll_init done\n", THIS_XCORE_TILE);
 #endif
+    (void) other_tile_c;
 }
 
 static void flash_init(void)
@@ -61,8 +65,6 @@ static void i2s_init(void)
 {
 #if appconfI2S_ENABLED
 #if ON_TILE(I2S_TILE_NO)
-#if appconfI2S_MODE == appconfI2S_MODE_MASTER
-    rtos_intertile_t *client_intertile_ctx[1] = {intertile_ctx};
     port_t p_i2s_dout[1] = {
             PORT_I2S_DAC_DATA
     };
@@ -81,25 +83,6 @@ static void i2s_init(void)
             PORT_I2S_LRCLK,
             PORT_MCLK,
             I2S_CLKBLK);
-
-#elif appconfI2S_MODE == appconfI2S_MODE_SLAVE
-    port_t p_i2s_dout[1] = {
-            PORT_I2S_ADC_DATA
-    };
-    port_t p_i2s_din[1] = {
-            PORT_I2S_DAC_DATA
-    };
-    rtos_i2s_slave_init(
-            i2s_ctx,
-            (1 << appconfI2S_IO_CORE),
-            p_i2s_dout,
-            1,
-            p_i2s_din,
-            1,
-            PORT_I2S_BCLK,
-            PORT_I2S_LRCLK,
-            I2S_CLKBLK);
-#endif
 #endif
 #endif
 }
