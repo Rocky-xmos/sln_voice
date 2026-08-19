@@ -12,6 +12,7 @@
 #include "timers.h"
 #include "queue.h"
 #include "stream_buffer.h"
+#include "rtos_printf.h"
 
 /* Library headers */
 #include "generic_pipeline.h"
@@ -24,6 +25,10 @@
 #include "platform/driver_instances.h"
 #include "stage1.h"
 
+#ifndef appconfADEC_STARTUP_MEASUREMENT_LOG
+#define appconfADEC_STARTUP_MEASUREMENT_LOG 0
+#endif
+
 #if appconfAUDIO_PIPELINE_FRAME_ADVANCE != 240
 #error This pipeline is only configured for 240 frame advance
 #endif
@@ -34,6 +39,29 @@ static stage1_t DWORD_ALIGNED stage_1_state;
 static aec_conf_t aec_de_mode_conf;
 static aec_conf_t aec_non_de_mode_conf;
 static adec_config_t adec_conf;
+
+#if appconfADEC_STARTUP_MEASUREMENT_LOG
+static void log_startup_adec_measurement(void)
+{
+    const stage1_adec_diagnostics_t *diagnostics = &stage_1_state.adec_diagnostics;
+    const int32_t measured_delay_samples = diagnostics->measured_delay_samples;
+    const int32_t measured_delay_abs = measured_delay_samples < 0 ? -measured_delay_samples : measured_delay_samples;
+
+    rtos_printf("ADEC startup delay measurement (AEC input_y vs input_x):\n");
+    rtos_printf("  measured_delay_samples: %ld (%s%ld.%03ld ms)\n",
+                measured_delay_samples,
+                measured_delay_samples < 0 ? "-" : "",
+                measured_delay_abs / 16,
+                (measured_delay_abs % 16) * 625 / 10);
+    rtos_printf("  requested_mic_delay_samples: %ld\n",
+                diagnostics->requested_mic_delay_samples);
+    rtos_printf("  requested_delay_samples_debug: %ld\n",
+                diagnostics->requested_delay_samples_debug);
+    rtos_printf("  peak_to_average_ratio: %ld * 2^%d\n",
+                diagnostics->peak_to_average_ratio.mant,
+                diagnostics->peak_to_average_ratio.exp);
+}
+#endif
 
 static void *audio_pipeline_input_i(void *input_app_data)
 {
@@ -69,6 +97,9 @@ static void stage_aec(frame_data_t *frame_data)
 #if appconfAUDIO_PIPELINE_SKIP_AEC
 #else
     int32_t DWORD_ALIGNED stage_1_out[AEC_MAX_Y_CHANNELS][appconfAUDIO_PIPELINE_FRAME_ADVANCE];
+#if appconfADEC_STARTUP_MEASUREMENT_LOG
+    const int32_t delay_estimator_was_enabled = stage_1_state.delay_estimator_enabled;
+#endif
 
     stage1_process_frame(&stage_1_state,
                           &stage_1_out[0],
@@ -77,6 +108,15 @@ static void stage_aec(frame_data_t *frame_data)
                           &frame_data->ref_active_flag,
                           frame_data->samples,
                           frame_data->aec_reference_audio_samples);
+
+    /* ADEC is configured for one forced DE cycle at boot. Report its result
+     * once, when Stage1 returns from DE to normal AEC operation. */
+#if appconfADEC_STARTUP_MEASUREMENT_LOG
+    if (delay_estimator_was_enabled && !stage_1_state.delay_estimator_enabled &&
+        stage_1_state.adec_diagnostics.delay_change_request_flag) {
+        log_startup_adec_measurement();
+    }
+#endif
 
     memcpy(frame_data->samples, stage_1_out, AEC_MAX_Y_CHANNELS * appconfAUDIO_PIPELINE_FRAME_ADVANCE * sizeof(int32_t));
 #endif

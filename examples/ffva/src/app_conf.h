@@ -130,11 +130,11 @@
 #endif
 
 #ifndef appconfAUDIO_PIPELINE_SKIP_IC_AND_VNR
-#define appconfAUDIO_PIPELINE_SKIP_IC_AND_VNR    0
+#define appconfAUDIO_PIPELINE_SKIP_IC_AND_VNR    1
 #endif
 
 #ifndef appconfAUDIO_PIPELINE_SKIP_NS
-#define appconfAUDIO_PIPELINE_SKIP_NS            0
+#define appconfAUDIO_PIPELINE_SKIP_NS            1
 #endif
 
 #ifndef appconfAUDIO_PIPELINE_SKIP_AGC
@@ -172,6 +172,21 @@
  */
 #ifndef appconfI2S_TDM_ENABLED
 #define appconfI2S_TDM_ENABLED     0
+#endif
+
+/* Debug loopback sends the I2S reference input back to the I2S output. */
+#ifndef appconfI2S_LOOPBACK_DEBUG
+#define appconfI2S_LOOPBACK_DEBUG   0
+#endif
+
+#if appconfI2S_LOOPBACK_DEBUG && (!appconfI2S_ENABLED || appconfI2S_TDM_ENABLED)
+#error "I2S loopback debug requires non-TDM I2S"
+#endif
+
+/* Print a rate-limited snapshot of the raw PDM microphone samples. Set to 0
+ * after diagnosing the audio path. */
+#ifndef appconfDEBUG_RAW_MIC_SAMPLES
+#define appconfDEBUG_RAW_MIC_SAMPLES  0
 #endif
 
 #ifndef appconfI2S_MODE_MASTER
@@ -220,12 +235,12 @@
 #define appconfUSB_INTERRUPT_CORE               2 /* Must be kept off I/O cores. Best kept off core 0 with the tick ISR. */
 #define appconfUSB_SOF_INTERRUPT_CORE           3 /* Must be kept off I/O cores. Best kept off cores with other ISRs. */
 #define appconfSPI_INTERRUPT_CORE               2 /* Must be kept off I/O cores. */
+#define appconfPDM_MIC_IO_CORE                  5 /* Must be kept off core 0 with the RTOS tick ISR */
+#define appconfPDM_MIC_INTERRUPT_CORE           4 /* Must be kept off I/O cores. Best kept off core 0 with the tick ISR. */
 
 /* I/O and interrupt cores for Tile 1 */
-#define appconfPDM_MIC_IO_CORE                  1 /* Must be kept off core 0 with the RTOS tick ISR */
 #define appconfI2S_IO_CORE                      2 /* Must be kept off core 0 with the RTOS tick ISR */
 #define appconfI2C_IO_CORE                      5 /* Must be kept off core 0 with the RTOS tick ISR */
-#define appconfPDM_MIC_INTERRUPT_CORE           4 /* Must be kept off I/O cores. Best kept off core 0 with the tick ISR. */
 #define appconfI2S_INTERRUPT_CORE               5 /* Must be kept off I/O cores. Best kept off core 0 with the tick ISR. */
 #define appconfI2C_INTERRUPT_CORE               4 /* Must be kept off I/O cores. */
 

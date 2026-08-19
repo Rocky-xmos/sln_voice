@@ -54,6 +54,7 @@ set(APP_COMMON_LINK_LIBRARIES
 # Pipeline Options
 # By default only these targets are created:
 #  example_ffva_int_fixed_delay
+#  example_ffva_int_adec
 #  example_ffva_ua_adec_altarch
 #**********************
 option(ENABLE_ALL_FFVA_PIPELINES  "Create all FFVA pipeline configurations"  OFF)
@@ -75,6 +76,7 @@ if(ENABLE_ALL_FFVA_PIPELINES)
 else()
     set(FFVA_PIPELINES_INT
         fixed_delay
+        adec
     )
 
     set(FFVA_PIPELINES_UA

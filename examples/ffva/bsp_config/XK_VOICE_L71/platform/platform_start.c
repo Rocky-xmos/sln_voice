@@ -151,13 +151,13 @@ void platform_start(void)
 
     gpio_start();
     flash_start();
-    i2c_master_start();
-    audio_codec_start();
-    spi_start();
+    // i2c_master_start();
+    // audio_codec_start();
+    // spi_start();
     mics_start();
     i2s_start();
     usb_start();
-    uart_start();
+    // uart_start();
     // I2C slave can be started only after i2c_master_start() is completed
-    i2c_slave_start();
+    // i2c_slave_start();
 }

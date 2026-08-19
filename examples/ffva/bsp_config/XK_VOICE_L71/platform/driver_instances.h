@@ -25,22 +25,24 @@
 #define I2C_TILE_NO        0
 #define I2C_CTRL_TILE_NO   I2C_TILE_NO
 #define SPI_OUTPUT_TILE_NO 0
-#define MICARRAY_TILE_NO   1
+#define MICARRAY_TILE_NO   0
 #define I2S_TILE_NO        1
 #define UART_TILE_NO       0
 
 /** TILE 0 Clock Blocks */
 #define FLASH_CLKBLK  XS1_CLKBLK_1
+#define PDM_CLKBLK_1  XS1_CLKBLK_2
+#define PDM_CLKBLK_2  XS1_CLKBLK_3
 // #define UNUSED_CLKBLK XS1_CLKBLK_2
-#define SPI_CLKBLK    XS1_CLKBLK_3
+// #define SPI_CLKBLK    XS1_CLKBLK_3
 #define XUD_CLKBLK_1  XS1_CLKBLK_4 /* Reserved for lib_xud */
 #define XUD_CLKBLK_2  XS1_CLKBLK_5 /* Reserved for lib_xud */
 
 /** TILE 1 Clock Blocks */
-#define PDM_CLKBLK_1  XS1_CLKBLK_1
-#define PDM_CLKBLK_2  XS1_CLKBLK_2
-#define I2S_CLKBLK    XS1_CLKBLK_3
-#define MCLK_CLKBLK   XS1_CLKBLK_4
+// #define PDM_CLKBLK_1  XS1_CLKBLK_1
+// #define PDM_CLKBLK_2  XS1_CLKBLK_2
+#define I2S_CLKBLK    XS1_CLKBLK_1
+#define MCLK_CLKBLK   XS1_CLKBLK_2
 // #define UNUSED_CLKBLK XS1_CLKBLK_5
 
 /* Port definitions */

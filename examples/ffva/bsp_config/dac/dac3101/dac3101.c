@@ -8,6 +8,10 @@
 #include "platform/driver_instances.h"
 #include "dac3101.h"
 
+#ifndef I2S_DATA_WIDTH
+#define I2S_DATA_WIDTH 32
+#endif
+
 /*
  * Example configuration of the TLV320DAC3101 DAC using i2c.
  *
@@ -19,11 +23,15 @@ int dac3101_init(uint32_t sample_rate)
 
     xassert((sample_rate == 16000) || (sample_rate == 48000));
 
-    // This setup is for 1.024MHz in (BCLK), PLL of 98.304MHz 24.576MHz out and fs of 16kHz or
-    // or 3.072MHz BCLK, PLL of 98.304MHz 24.576MHz out and fs of 48kHz
+    // With 32-bit I2S slots this setup uses 1.024MHz/3.072MHz BCLK.
+    // With 16-bit I2S slots it uses 0.512MHz/1.536MHz BCLK.
     const unsigned PLLP = 1;
     const unsigned PLLR = 4;
+#if I2S_DATA_WIDTH == 16
+    const unsigned PLLJ = (sample_rate == 16000) ? 48 : 16;
+#else
     const unsigned PLLJ = (sample_rate == 16000) ? 24 : 8;
+#endif
     const unsigned PLLD = 0;
     const unsigned NDAC = 4;
     const unsigned MDAC = (sample_rate == 16000) ? 6 : 4;
@@ -74,8 +82,12 @@ int dac3101_init(uint32_t sample_rate)
         // Set GPIO1 output to come from CLKOUT output.
         dac3101_reg_write(DAC3101_GPIO1_IO, 0x10) == 0 &&
 
-        // Set CODEC interface mode: I2S, 24 bit, slave mode (BCLK, WCLK both inputs).
+        // Set CODEC interface mode: I2S, slave mode (BCLK, WCLK both inputs).
+#if I2S_DATA_WIDTH == 16
+        dac3101_reg_write(DAC3101_CODEC_IF, 0x00) == 0 &&
+#else
         dac3101_reg_write(DAC3101_CODEC_IF, 0x20) == 0 &&
+#endif
         // Set register page to 1
         dac3101_reg_write(DAC3101_PAGE_CTRL, 0x01) == 0 &&
         // Program common-mode voltage to mid scale 1.65V.

@@ -41,6 +41,19 @@
 volatile int mic_from_usb = appconfMIC_SRC_DEFAULT;
 volatile int aec_ref_source = appconfAEC_REF_DEFAULT;
 
+/* The audio pipeline uses signed Q1.31 samples. With I2S_DATA_WIDTH=16, the
+ * I2S driver takes the transmitted sample from the low 16 bits of its API
+ * word. */
+static inline int32_t q31_to_i2s16(int32_t sample)
+{
+    return (int32_t)(int16_t)((uint32_t)sample >> 16);
+}
+
+static inline int32_t i2s16_to_q31(int32_t sample)
+{
+    return (int32_t)(int16_t)sample * 65536;
+}
+
 #if appconfI2S_ENABLED && (appconfI2S_MODE == appconfI2S_MODE_SLAVE)
 void i2s_slave_intertile(void *args) {
     (void) args;
@@ -117,6 +130,26 @@ void audio_pipeline_input(void *input_app_data,
                       frame_count,
                       portMAX_DELAY);
 
+#if appconfDEBUG_RAW_MIC_SAMPLES
+    /* mic_ptr addresses channel-sample-format data: frame_count samples of
+     * mic 0 followed by frame_count samples of mic 1. Print one snapshot per
+     * 100 frames rather than every sample to preserve real-time operation. */
+    static unsigned raw_mic_debug_frame;
+    int32_t *raw_mic_samples = (int32_t *)mic_ptr;
+
+    if ((raw_mic_debug_frame++ % 100U) == 0U) {
+        rtos_printf("raw mic0: %08x %08x %08x %08x | mic1: %08x %08x %08x %08x\n",
+                    (unsigned)raw_mic_samples[0],
+                    (unsigned)raw_mic_samples[1],
+                    (unsigned)raw_mic_samples[2],
+                    (unsigned)raw_mic_samples[3],
+                    (unsigned)raw_mic_samples[frame_count],
+                    (unsigned)raw_mic_samples[frame_count + 1],
+                    (unsigned)raw_mic_samples[frame_count + 2],
+                    (unsigned)raw_mic_samples[frame_count + 3]);
+    }
+#endif
+
 #if appconfUSB_ENABLED
     int32_t **usb_mic_audio_frame = NULL;
     size_t ch_cnt = 2;  /* ref frames */
@@ -157,9 +190,10 @@ void audio_pipeline_input(void *input_app_data,
 
         for (int i=0; i<frame_count; i++) {
             /* ref is first */
-            *(tmpptr + i) = tmp[i][0];
-            *(tmpptr + i + frame_count) = tmp[i][1];
+            *(tmpptr + i) = i2s16_to_q31(tmp[i][0]);
+            *(tmpptr + i + frame_count) = i2s16_to_q31(tmp[i][1]);
         }
+        // printf("0x%x,",tmp[0][0]);
     }
 #endif
 
@@ -179,10 +213,27 @@ int audio_pipeline_output(void *output_app_data,
     int32_t tmp[appconfAUDIO_PIPELINE_FRAME_ADVANCE][appconfAUDIO_PIPELINE_CHANNELS];
     int32_t *tmpptr = (int32_t *)output_audio_frames;
     for (int j=0; j<frame_count; j++) {
-        /* ASR output is first */
-        tmp[j][0] = *(tmpptr+j+(2*frame_count));    // ref 0
-        tmp[j][1] = *(tmpptr+j+(3*frame_count));    // ref 1
+#if appconfI2S_LOOPBACK_DEBUG
+        /* output_audio_frames format is processed, reference, raw mic.
+         * The I2S input is stored in the reference pair by
+         * audio_pipeline_input(). */
+        tmp[j][0] = q31_to_i2s16(*(tmpptr + j + (2 * frame_count)));
+        tmp[j][1] = q31_to_i2s16(*(tmpptr + j + (3 * frame_count)));
+#else
+        /* Output the processed microphone signal to the DAC.
+         * The processed pipeline output is mono, so duplicate it to both
+         * DAC channels. The I2S reference remains input-only for the AEC.
+         */
+        int32_t processed_sample = q31_to_i2s16(*(tmpptr + j));
+        tmp[j][0] = processed_sample;
+        // tmp[j][1] = processed_sample;
+        // tmp[j][0] = q31_to_i2s16(*(tmpptr + j + (4 * frame_count)))<<5;
+        tmp[j][1] = q31_to_i2s16(*(tmpptr + j + (2 * frame_count)));
+#endif
+        // tmp[j][0] = q31_to_i2s16(*(tmpptr + j + (4 * frame_count)));
+        // tmp[j][1] = (*(tmpptr + j + (2 * frame_count)));
     }
+    // printf("0x%x,",tmp[0][0]);
 
     rtos_i2s_tx(i2s_ctx,
                 (int32_t*) tmp,

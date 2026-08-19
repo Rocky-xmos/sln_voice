@@ -26,14 +26,18 @@
             <Port Location="XS1_PORT_4B"  Name="PORT_SQI_SIO_0"/>
 
             <!-- SPI ports -->
-            <Port Location="XS1_PORT_1A"  Name="PORT_SSB"/>
+            <!-- <Port Location="XS1_PORT_1A"  Name="PORT_SSB"/>
             <Port Location="XS1_PORT_1C"  Name="PORT_SQI_SCLK_0"/>
             <Port Location="XS1_PORT_1D"  Name="PORT_SPI_MOSI"/>
-            <Port Location="XS1_PORT_1P"  Name="PORT_SPI_MISO"/>
+            <Port Location="XS1_PORT_1P"  Name="PORT_SPI_MISO"/> -->
 
             <!-- I2C ports -->
             <Port Location="XS1_PORT_1N"  Name="PORT_I2C_SCL"/>
             <Port Location="XS1_PORT_1O"  Name="PORT_I2C_SDA"/>
+
+            <!-- MIC related ports -->
+            <Port Location="XS1_PORT_1A"  Name="PORT_PDM_CLK"/>
+            <Port Location="XS1_PORT_1D"  Name="PORT_PDM_DATA"/>
 
             <!-- GPIO ports -->
             <Port Location="XS1_PORT_8C"  Name="PORT_GPO"/>
@@ -46,15 +50,15 @@
           <Tile Number="1" Reference="tile[1]">
 
             <!-- MIC related ports -->
-            <Port Location="XS1_PORT_1G"  Name="PORT_PDM_CLK"/>
-            <Port Location="XS1_PORT_1F"  Name="PORT_PDM_DATA"/>
+            <!-- <Port Location="XS1_PORT_1G"  Name="PORT_PDM_CLK"/>
+            <Port Location="XS1_PORT_1F"  Name="PORT_PDM_DATA"/> -->
 
             <!-- Audio ports -->
             <Port Location="XS1_PORT_1D"  Name="PORT_MCLK_IN_OUT"/>
             <Port Location="XS1_PORT_1C"  Name="PORT_I2S_BCLK"/>
             <Port Location="XS1_PORT_1B"  Name="PORT_I2S_LRCLK"/>
-            <Port Location="XS1_PORT_1A"  Name="I2S_MIC_DATA"/>
-            <Port Location="XS1_PORT_1K"  Name="I2S_DATA_IN"/>
+            <Port Location="XS1_PORT_1G"  Name="I2S_MIC_DATA"/>
+            <Port Location="XS1_PORT_1A"  Name="I2S_DATA_IN"/>
 
             <!-- SW PLL ports. These are used internally to count I2S clocks and aren't used to drive pins -->
             <Port Location="XS1_PORT_16A"  Name="PORT_MCLK_COUNT"/>

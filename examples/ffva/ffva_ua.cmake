@@ -7,10 +7,14 @@ set(FFVA_UA_COMPILE_DEFINITIONS
     ${APP_COMPILE_DEFINITIONS}
     appconfI2S_ENABLED=1
     appconfUSB_ENABLED=1
-    appconfAEC_REF_DEFAULT=appconfAEC_REF_USB
+    appconfAEC_REF_DEFAULT=appconfAEC_REF_I2S
     appconfI2S_MODE=appconfI2S_MODE_MASTER
+    appconfI2S_AUDIO_SAMPLE_RATE=16000
+    # The diagnostics USB microphone descriptor exposes all six pipeline planes.
+    appconfUSB_AUDIO_MODE=appconfUSB_AUDIO_TESTING
 
     MIC_ARRAY_CONFIG_MCLK_FREQ=24576000
+    I2S_DATA_WIDTH=16
 )
 
 if(DEBUG_FFVA_USB_MIC_INPUT)
