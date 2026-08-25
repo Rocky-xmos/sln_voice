@@ -51,7 +51,7 @@ static inline int32_t q31_to_i2s16(int32_t sample)
 
 static inline int32_t i2s16_to_q31(int32_t sample)
 {
-    return (int32_t)(int16_t)sample * 65536;
+    return (int32_t)sample << 16;
 }
 
 #if appconfI2S_ENABLED && (appconfI2S_MODE == appconfI2S_MODE_SLAVE)
@@ -190,8 +190,15 @@ void audio_pipeline_input(void *input_app_data,
 
         for (int i=0; i<frame_count; i++) {
             /* ref is first */
+#if appconfI2S_AUDIO_SAMPLE_RATE == (3 * appconfAUDIO_PIPELINE_SAMPLE_RATE)
+            /* The 3:1 receive SRC converts the PCM16 input to Q1.31 before
+             * filtering, so its output is already in the pipeline format. */
+            *(tmpptr + i) = tmp[i][0];
+            *(tmpptr + i + frame_count) = 0;
+#else
             *(tmpptr + i) = i2s16_to_q31(tmp[i][0]);
-            *(tmpptr + i + frame_count) = i2s16_to_q31(tmp[i][1]);
+            *(tmpptr + i + frame_count) = 0;
+#endif
         }
         // printf("0x%x,",tmp[0][0]);
     }
@@ -348,26 +355,35 @@ size_t i2s_send_downsample_cb(rtos_i2s_t *ctx, void *app_data, int32_t *i2s_fram
 
     xassert(i2s_frame_size == 2);
 
+    /* With I2S_DATA_WIDTH=16 lib_i2s returns the sample in the low 16 bits
+     * without sign extension. Convert it to signed Q1.31 before the FIR;
+     * otherwise every negative PCM16 sample is interpreted as a large
+     * positive value and the decimated reference becomes broadband noise. */
+    const int32_t input_q31[2] = {
+        i2s16_to_q31(i2s_frame[0]),
+        i2s16_to_q31(i2s_frame[1])
+    };
+
     switch (i) {
     case 0:
         i = 1;
-        sum[0] = src_ds3_voice_add_sample(0, src_data[0][0], src_ff3v_fir_coefs[0], i2s_frame[0]);
-        sum[1] = src_ds3_voice_add_sample(0, src_data[1][0], src_ff3v_fir_coefs[0], i2s_frame[1]);
+        sum[0] = src_ds3_voice_add_sample(0, src_data[0][0], src_ff3v_fir_coefs[0], input_q31[0]);
+        sum[1] = src_ds3_voice_add_sample(0, src_data[1][0], src_ff3v_fir_coefs[0], input_q31[1]);
         return 0;
     case 1:
         i = 2;
-        sum[0] = src_ds3_voice_add_sample(sum[0], src_data[0][1], src_ff3v_fir_coefs[1], i2s_frame[0]);
-        sum[1] = src_ds3_voice_add_sample(sum[1], src_data[1][1], src_ff3v_fir_coefs[1], i2s_frame[1]);
+        sum[0] = src_ds3_voice_add_sample(sum[0], src_data[0][1], src_ff3v_fir_coefs[1], input_q31[0]);
+        sum[1] = src_ds3_voice_add_sample(sum[1], src_data[1][1], src_ff3v_fir_coefs[1], input_q31[1]);
         return 0;
     case 2:
         i = 0;
         if (sample_spaces_free >= 2) {
-            receive_buf[0] = src_ds3_voice_add_final_sample(sum[0], src_data[0][2], src_ff3v_fir_coefs[2], i2s_frame[0]);
-            receive_buf[1] = src_ds3_voice_add_final_sample(sum[1], src_data[1][2], src_ff3v_fir_coefs[2], i2s_frame[1]);
+            receive_buf[0] = src_ds3_voice_add_final_sample(sum[0], src_data[0][2], src_ff3v_fir_coefs[2], input_q31[0]);
+            receive_buf[1] = src_ds3_voice_add_final_sample(sum[1], src_data[1][2], src_ff3v_fir_coefs[2], input_q31[1]);
             return 2;
         } else {
-            (void) src_ds3_voice_add_final_sample(sum[0], src_data[0][2], src_ff3v_fir_coefs[2], i2s_frame[0]);
-            (void) src_ds3_voice_add_final_sample(sum[1], src_data[1][2], src_ff3v_fir_coefs[2], i2s_frame[1]);
+            (void) src_ds3_voice_add_final_sample(sum[0], src_data[0][2], src_ff3v_fir_coefs[2], input_q31[0]);
+            (void) src_ds3_voice_add_final_sample(sum[1], src_data[1][2], src_ff3v_fir_coefs[2], input_q31[1]);
             return 0;
         }
     default:
@@ -394,7 +410,7 @@ void vApplicationMallocFailedHook(void)
 static void mem_analysis(void)
 {
 	for (;;) {
-		rtos_printf("Tile[%d]:\n\tMinimum heap free: %d\n\tCurrent heap free: %d\n", THIS_XCORE_TILE, xPortGetMinimumEverFreeHeapSize(), xPortGetFreeHeapSize());
+		// rtos_printf("Tile[%d]:\n\tMinimum heap free: %d\n\tCurrent heap free: %d\n", THIS_XCORE_TILE, xPortGetMinimumEverFreeHeapSize(), xPortGetFreeHeapSize());
 		vTaskDelay(pdMS_TO_TICKS(5000));
 	}
 }

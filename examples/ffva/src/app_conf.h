@@ -111,7 +111,7 @@
  * A positive delay will delay mics
  * A negative delay will delay ref
  */
-#define appconfINPUT_SAMPLES_MIC_DELAY_MS        0
+#define appconfINPUT_SAMPLES_MIC_DELAY_MS        18
 
 #ifdef appconfPIPELINE_BYPASS
 #define appconfAUDIO_PIPELINE_SKIP_STATIC_DELAY  1
@@ -130,11 +130,11 @@
 #endif
 
 #ifndef appconfAUDIO_PIPELINE_SKIP_IC_AND_VNR
-#define appconfAUDIO_PIPELINE_SKIP_IC_AND_VNR    1
+#define appconfAUDIO_PIPELINE_SKIP_IC_AND_VNR    0
 #endif
 
 #ifndef appconfAUDIO_PIPELINE_SKIP_NS
-#define appconfAUDIO_PIPELINE_SKIP_NS            1
+#define appconfAUDIO_PIPELINE_SKIP_NS            0
 #endif
 
 #ifndef appconfAUDIO_PIPELINE_SKIP_AGC

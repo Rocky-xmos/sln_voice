@@ -81,6 +81,7 @@ else()
 
     set(FFVA_PIPELINES_UA
         adec_altarch
+        fixed_delay
     )
 endif()
 
