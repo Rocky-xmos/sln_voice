@@ -233,9 +233,9 @@ int audio_pipeline_output(void *output_app_data,
          */
         int32_t processed_sample = q31_to_i2s16(*(tmpptr + j));
         tmp[j][0] = processed_sample;
-        // tmp[j][1] = processed_sample;
+        tmp[j][1] = processed_sample;
         // tmp[j][0] = q31_to_i2s16(*(tmpptr + j + (4 * frame_count)))<<5;
-        tmp[j][1] = q31_to_i2s16(*(tmpptr + j + (2 * frame_count)));
+        // tmp[j][1] = q31_to_i2s16(*(tmpptr + j + (2 * frame_count)));
 #endif
         // tmp[j][0] = q31_to_i2s16(*(tmpptr + j + (4 * frame_count)));
         // tmp[j][1] = (*(tmpptr + j + (2 * frame_count)));

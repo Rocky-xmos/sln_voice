@@ -135,9 +135,15 @@ void usb_audio_send(rtos_intertile_t *intertile_ctx,
     xassert(frame_count == appconfAUDIO_PIPELINE_FRAME_ADVANCE);
 
     for(int ch=0; ch<CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX; ch++) {
+#if appconfUSB_AUDIO_MODE == appconfUSB_AUDIO_RELEASE
+        /* both channels carry the ASR-optimised signal. */
+        const int source_ch = 0;
+#else
+        const int source_ch = ch;
+#endif
         for (int i=0; i<appconfAUDIO_PIPELINE_FRAME_ADVANCE; i++) {
-            if (ch < num_chans) {
-                usb_audio_in_frame[i][ch] = frame_buf_ptr[i+(appconfAUDIO_PIPELINE_FRAME_ADVANCE*ch)] >> src_32_shift;
+            if (source_ch < num_chans) {
+                usb_audio_in_frame[i][ch] = frame_buf_ptr[i+(appconfAUDIO_PIPELINE_FRAME_ADVANCE*source_ch)] >> src_32_shift;
             }
         }
     }
